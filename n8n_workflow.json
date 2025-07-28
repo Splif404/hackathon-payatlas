@@ -15,7 +15,7 @@
       "typeVersion": 1.2,
       "position": [
         -1104,
-        -336
+        -624
       ],
       "id": "0ffc9bf9-f9a2-4c31-92a6-1cabff91077e",
       "name": "Schedule Trigger"
@@ -28,26 +28,11 @@
       "type": "n8n-nodes-base.splitOut",
       "typeVersion": 1,
       "position": [
-        -624,
-        -336
+        -656,
+        -624
       ],
       "id": "6550f05c-0180-4043-a95e-3bf767ea336b",
       "name": "Split Out"
-    },
-    {
-      "parameters": {
-        "url": "={{ $json.url }}",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        -176,
-        -144
-      ],
-      "id": "6c1c5d92-de6d-464e-b94e-6ca3972237f4",
-      "name": "HTTP request All Feeds",
-      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -56,8 +41,8 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
       "position": [
-        192,
-        -48
+        -432,
+        -320
       ],
       "id": "ababe2c4-a7e1-48c6-8084-779c5b7a5aaf",
       "name": "Google Gemini Chat Model",
@@ -77,8 +62,8 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2.1,
       "position": [
-        192,
-        -240
+        -432,
+        -624
       ],
       "id": "532359bc-e418-4751-a9d4-5b957800db91",
       "name": "AI Feed Reader Agent"
@@ -90,8 +75,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        576,
-        -416
+        -32,
+        -624
       ],
       "id": "87a4c7f4-582d-4b1f-b1cb-75da7523d574",
       "name": "Normalize"
@@ -106,54 +91,10 @@
       "typeVersion": 3.4,
       "position": [
         -880,
-        -144
+        -624
       ],
       "id": "a7734e69-7676-4780-b0ca-da9f0c491b8f",
       "name": "Providers 1 item JSON"
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "df5119d7-ef46-43ec-8210-d239e583560a",
-              "name": "provider",
-              "value": "={{ $json.provider }}",
-              "type": "string"
-            },
-            {
-              "id": "1e079dd3-618d-430e-8511-0b538c1d8e56",
-              "name": "url",
-              "value": "={{ $json.url }}",
-              "type": "string"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        -384,
-        -496
-      ],
-      "id": "ebb49e25-8108-4b1d-af89-f7787032d2fc",
-      "name": "Drop Feed Type"
-    },
-    {
-      "parameters": {
-        "mode": "combine",
-        "combineBy": "combineByPosition",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.merge",
-      "typeVersion": 3.2,
-      "position": [
-        16,
-        -400
-      ],
-      "id": "eb266c3b-9e76-437f-81a0-96fb2f74ffec",
-      "name": "Provider + Response"
     },
     {
       "parameters": {
@@ -170,7 +111,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        864,
+        192,
         -624
       ],
       "id": "b9b7c6f3-9158-4860-8ee7-f76b5b940de9",
@@ -191,8 +132,8 @@
       "type": "n8n-nodes-base.rssFeedReadTool",
       "typeVersion": 1.2,
       "position": [
-        384,
-        -48
+        -240,
+        -320
       ],
       "id": "51ec56a4-daa1-4bbe-b6de-f652a76f5229",
       "name": "RSS Read"
@@ -215,20 +156,9 @@
       "main": [
         [
           {
-            "node": "Drop Feed Type",
+            "node": "AI Feed Reader Agent",
             "type": "main",
             "index": 0
-          }
-        ]
-      ]
-    },
-    "HTTP request All Feeds": {
-      "main": [
-        [
-          {
-            "node": "Provider + Response",
-            "type": "main",
-            "index": 1
           }
         ]
       ]
@@ -277,33 +207,6 @@
         ]
       ]
     },
-    "Drop Feed Type": {
-      "main": [
-        [
-          {
-            "node": "HTTP request All Feeds",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Provider + Response",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Provider + Response": {
-      "main": [
-        [
-          {
-            "node": "AI Feed Reader Agent",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "RSS Read": {
       "ai_tool": [
         [
@@ -320,7 +223,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "fb9f20fa-2150-48b4-9831-63d621ad9c5f",
+  "versionId": "c1502e96-762c-4e0d-b5b4-3b339ad3c9b8",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "256be6e1868956c4a863f0c2934b2cecbbcdc445830c7fcb4b5d4847d42af749"
