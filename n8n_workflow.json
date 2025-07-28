@@ -1,0 +1,330 @@
+{
+  "name": "NAZVA_KOMANDI_workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1104,
+        -336
+      ],
+      "id": "0ffc9bf9-f9a2-4c31-92a6-1cabff91077e",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "providers",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -624,
+        -336
+      ],
+      "id": "6550f05c-0180-4043-a95e-3bf767ea336b",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -176,
+        -144
+      ],
+      "id": "6c1c5d92-de6d-464e-b94e-6ca3972237f4",
+      "name": "HTTP request All Feeds",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        192,
+        -48
+      ],
+      "id": "ababe2c4-a7e1-48c6-8084-779c5b7a5aaf",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "bfuPbx79jWJQnQP9",
+          "name": "Google Gemini(PaLM) Api account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a feed-normalisation assistant.\n\nFeed details for this run  \n  provider: {{ $json.provider }}  \n  url:      {{ $json.url }}\n\nTask  \n1. Download the feed at **url** (it may be RSS/Atom XML or JSON).  \n2. Parse every incident entry.  \n3. Return **raw JSON only** – an array where each object has exactly:  \n   - provider   (string, copy the value above)  \n   - guid       (guid | id | link | base64(title+date) fallback)  \n   - title      (string)  \n   - status     (\"up\" | \"down\" | \"maintenance\" | \"degraded\" | \"info\")  \n   - started_at (ISO-8601; use isoDate | pubDate or now)  \n   - link       (string)  \n\nIf the feed is empty or returns 404, respond with the empty array `[]`.  \nDo **not** output markdown or explanations—only the JSON array.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.1,
+      "position": [
+        192,
+        -240
+      ],
+      "id": "532359bc-e418-4751-a9d4-5b957800db91",
+      "name": "AI Feed Reader Agent"
+    },
+    {
+      "parameters": {
+        "jsCode": "// helpers ──────────────────────────────────────────────\nfunction clean(raw) {\n  // прибираємо ```json ... ``` та зайві переноси\n  return raw.replace(/```[a-z]*\\s*/gi, '').replace(/```/g, '').trim();\n}\n\nfunction safeJSON(str) {\n  try { return JSON.parse(str); } catch { return null; }\n}\n\n// основне ──────────────────────────────────────────────\nconst out = [];\n\nfor (const item of items) {\n  const providerBase = item.json.provider ?? 'unknown';\n  let raw = item.json.output;\n\n  if (typeof raw !== 'string' || raw.trim() === '') continue;\n\n  raw = clean(raw);\n  let parsed = safeJSON(raw);\n  if (!parsed) continue;                       // не розпарсилось\n\n  if (!Array.isArray(parsed)) parsed = [parsed];\n\n  for (const e of parsed) {\n    out.push({\n      json: {\n        provider:   e.provider   ?? providerBase,\n        guid:       e.guid       ?? e.id ?? e.link ?? '',\n        title:      e.title      ?? '',\n        status:     e.status     ?? 'info',\n        started_at: e.started_at ?? new Date().toISOString(),\n        link:       e.link       ?? ''\n      }\n    });\n  }\n}\n\nreturn out;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        576,
+        -416
+      ],
+      "id": "87a4c7f4-582d-4b1f-b1cb-75da7523d574",
+      "name": "Normalize"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"providers\": [\n    { \"provider\": \"Authorize.net\", \"url\": \"https://status.authorize.net/history.rss\", \"format\": \"rss\" },\n    { \"provider\": \"BitPay\",        \"url\": \"https://bitpayinc.statuspage.io/history.atom\",          \"format\": \"atom\" },\n    { \"provider\": \"Cybersource\",   \"url\": \"https://status.cybersource.com/history.atom\",           \"format\": \"atom\" },\n    { \"provider\": \"Google Pay API\",\"url\": \"https://pay.google.com/status/en/feed.atom\",            \"format\": \"atom\" },\n    { \"provider\": \"iDEAL\",         \"url\": \"https://availability.ideal.nl/history.atom\",            \"format\": \"atom\" },\n    { \"provider\": \"Klarna\",        \"url\": \"https://status.klarna.com/history.rss\",                 \"format\": \"rss\" },\n    { \"provider\": \"Mollie\",        \"url\": \"https://status.mollie.com/rss\",                         \"format\": \"rss\" },\n    { \"provider\": \"PayPal\",        \"url\": \"https://www.paypal-status.com/feed/rss\",               \"format\": \"rss\" },\n    { \"provider\": \"PayU Europe\",   \"url\": \"https://status.secure.payu.com/history.atom\",           \"format\": \"atom\" },\n    { \"provider\": \"PayU Hub\",      \"url\": \"https://status.paymentsos.com/history.atom\",            \"format\": \"atom\" },\n    { \"provider\": \"Paysafe\",       \"url\": \"https://status.paysafe.com/history.atom\",               \"format\": \"atom\" },\n    { \"provider\": \"Rapyd\",         \"url\": \"https://status.rapyd.cloud/history.atom\",               \"format\": \"atom\" },\n    { \"provider\": \"Razorpay\",      \"url\": \"https://api.razorpay.com/v1/payments/downtimes\",        \"format\": \"json\" },\n    { \"provider\": \"Stripe\",        \"url\": \"https://www.stripestatus.com/history.rss\",              \"format\": \"rss\" },\n    { \"provider\": \"Visa\",          \"url\": \"https://status.visaacceptance.com/history.atom\",        \"format\": \"atom\" },\n    { \"provider\": \"Worldline\",     \"url\": \"https://wlop.status.worldline-solutions.com/history.atom\",\"format\": \"atom\" },\n    { \"provider\": \"Worldpay\",      \"url\": \"https://status.worldpay.com/history.rss\",               \"format\": \"rss\" }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -880,
+        -144
+      ],
+      "id": "a7734e69-7676-4780-b0ca-da9f0c491b8f",
+      "name": "Providers 1 item JSON"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "df5119d7-ef46-43ec-8210-d239e583560a",
+              "name": "provider",
+              "value": "={{ $json.provider }}",
+              "type": "string"
+            },
+            {
+              "id": "1e079dd3-618d-430e-8511-0b538c1d8e56",
+              "name": "url",
+              "value": "={{ $json.url }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -384,
+        -496
+      ],
+      "id": "ebb49e25-8108-4b1d-af89-f7787032d2fc",
+      "name": "Drop Feed Type"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        16,
+        -400
+      ],
+      "id": "eb266c3b-9e76-437f-81a0-96fb2f74ffec",
+      "name": "Provider + Response"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://directus.corefy.org/items/hakaton_NAZVA_KOMANDI?upsert=guid",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        864,
+        -624
+      ],
+      "id": "b9b7c6f3-9158-4860-8ee7-f76b5b940de9",
+      "name": "HTTP POST DIRECTUS",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "98bmnFtN2lJE6r0e",
+          "name": "Directus Bearer Auth account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('URL', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedReadTool",
+      "typeVersion": 1.2,
+      "position": [
+        384,
+        -48
+      ],
+      "id": "51ec56a4-daa1-4bbe-b6de-f652a76f5229",
+      "name": "RSS Read"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Providers 1 item JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Drop Feed Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP request All Feeds": {
+      "main": [
+        [
+          {
+            "node": "Provider + Response",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Feed Reader Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Feed Reader Agent": {
+      "main": [
+        [
+          {
+            "node": "Normalize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize": {
+      "main": [
+        [
+          {
+            "node": "HTTP POST DIRECTUS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Providers 1 item JSON": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Drop Feed Type": {
+      "main": [
+        [
+          {
+            "node": "HTTP request All Feeds",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Provider + Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Provider + Response": {
+      "main": [
+        [
+          {
+            "node": "AI Feed Reader Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS Read": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Feed Reader Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "fb9f20fa-2150-48b4-9831-63d621ad9c5f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "256be6e1868956c4a863f0c2934b2cecbbcdc445830c7fcb4b5d4847d42af749"
+  },
+  "id": "YcNfeSDpQKzp7a4f",
+  "tags": []
+}
